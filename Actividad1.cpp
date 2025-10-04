@@ -1,6 +1,6 @@
-// kmer_groundtruth_act1.cpp
-// Adaptado para: k ∈ {21, 31} fijos y lectura automática desde carpeta Genomas/.
-// Mantiene: --phi (umbral HH), --limit (N máx. de k-mers por k), --out-prefix (prefijo salidas).
+//compilacion: g++ -O3 -std=c++17 -o act1 Actividad1.cpp
+//ejecucion: ./act1 --phi (valor) --limit (valor) --out-prefix (prefijo de csv)
+//ignorar --limit para no usar top-N kmers
 
 #include <iostream>
 #include <fstream>
@@ -21,8 +21,6 @@
 #endif
 
 namespace fs = std::filesystem;
-
-// -------- Utilidad memoria pico (Linux) --------
 static size_t getPeakRSSBytes() {
 #if defined(__linux__)
     std::ifstream in("/proc/self/status");
@@ -41,7 +39,7 @@ static size_t getPeakRSSBytes() {
     return 0;
 }
 
-// -------- Mapping 2 bits/base --------
+
 inline int encode_base(char c) {
     switch (c) {
         case 'A': return 0;
@@ -63,8 +61,6 @@ std::string decode_kmer(uint64_t code, int k) {
     }
     return s;
 }
-
-// -------- Rodante por k --------
 struct KmerRolling {
     int k;
     uint64_t mask;
@@ -73,7 +69,7 @@ struct KmerRolling {
     bool saturated=false;
 
     std::unordered_map<uint64_t, uint64_t> counts;
-    uint64_t totalKmers = 0; // N
+    uint64_t totalKmers = 0;
 
     explicit KmerRolling(int kk): k(kk) {
         mask = (k==32) ? ~0ULL : ((1ULL << (2*k)) - 1ULL);
@@ -89,7 +85,7 @@ struct KmerRolling {
     }
 };
 
-// -------- CLI simple (phi, limit, out-prefix) --------
+//phi, limit, out-prefix
 struct Args {
     double phi = 1e-4;            // --phi
     uint64_t limitPerK = 0;       // --limit
@@ -121,7 +117,7 @@ static bool parse_args(int argc, char** argv, Args& a) {
     return true;
 }
 
-// -------- Escrituras --------
+//escrituras
 static void write_counts_csv(const std::string& path, const KmerRolling& kr) {
     std::ofstream out(path);
     out << "k,code,kmer,count,freq\n";
@@ -144,11 +140,9 @@ static void write_heavy_csv(const std::string& path, const KmerRolling& kr, doub
         }
     }
 }
-
-// -------- Recolectar archivos Genomas/GCA_*.fna --------
 static std::vector<fs::path> collect_genomes() {
     std::vector<fs::path> files;
-    fs::path root("Genomas");
+    fs::path root("Genomas1");
     if (!fs::exists(root) || !fs::is_directory(root)) {
         std::cerr << "[ERROR] No existe carpeta 'Genomas/'.\n";
         return files;
@@ -156,7 +150,6 @@ static std::vector<fs::path> collect_genomes() {
     for (auto &entry : fs::directory_iterator(root)) {
         if (!entry.is_regular_file()) continue;
         auto p = entry.path();
-        // patrón: nombre que empiece con GCA_ y termine en .fna
         if (p.filename().string().rfind("GCA_", 0) == 0 && p.extension() == ".fna") {
             files.push_back(p);
         }
@@ -224,7 +217,7 @@ int main(int argc, char** argv) {
     double secs = std::chrono::duration<double>(t1 - t0).count();
     size_t peak = getPeakRSSBytes();
 
-    // Salidas
+    //salidas
     std::cerr << std::fixed << std::setprecision(3);
     std::cerr << "[Tiempo] " << secs << " s\n";
     if (peak) std::cerr << "[Memoria pico] " << (peak / (1024.0*1024.0)) << " MB\n";

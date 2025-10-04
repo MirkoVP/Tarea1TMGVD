@@ -1,4 +1,7 @@
 Genomas/
+Genomas1/
+oldver/
+venv/
 *.out
 *.exe
 *.csv
